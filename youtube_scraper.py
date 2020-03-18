@@ -4,6 +4,7 @@ import pafy
 import os
 import youtube_dl
 import pandas as pd
+import re
 
 
 # Select CSV to open
@@ -82,7 +83,7 @@ for index, url in enumerate(url_list):
                 # Loop through available video qualities
                 for j in video.videostreams:
                     # Find if it matches the selected quality and is a mp4
-                    if str(j).find(quality_dict[i]) != -1 and str(j).find('mp4') != -1:
+                    if str(j).find(quality_dict[i]) != -1 and str(j).find('webm') != -1:
                         # Set quality output as the first found
                         quality_for_title = str(i)
 
@@ -99,8 +100,11 @@ for index, url in enumerate(url_list):
 
         print(title + ": " + str(video_out))
 
+        # Clean title of non-allowed characters
+        title = re.sub('[^\w\-_\. ]', '_', title)
+
         # Make title
-        extension = '.mp4'
+        extension = '.webm'
         full_title = title + " - " + quality_for_title + extension
 
         # Download the video
