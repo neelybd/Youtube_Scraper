@@ -19,8 +19,11 @@ data = open_unknown_csv(file_in, delimiter)
 # Get header list
 headers = list(data)
 
+# URL column name
+url_column_name = column_selection(headers, "YouTube URL scraping")
+
 # Select URL column
-url_list = data[column_selection(headers, "YouTube URL scraping")]
+url_list = data[url_column_name]
 
 # Specify folder names
 outpt_fldr = 'output'
@@ -46,9 +49,17 @@ else:
     # Ask for best quality to be used
     video_quality_selection = dict_selection(quality_dict, "Select the maximum video quality to download", "")
 
+# Could not scrape limit
+error_limit = 10
+error_num = 0
+
+# Could not scrape list
+error_url_list = list()
+
 # Loop through urls and scrap
 for index, url in enumerate(url_list):
     # Try to scrape video
+    print(url)
     try:
         # Create video object
         video = pafy.new(url)
@@ -68,7 +79,7 @@ for index, url in enumerate(url_list):
         # Create dict of stats
         stats = dict()
         stats = {'title': title, 'views': views, 'author': author, 'length': length, 'likes': likes,
-                 'dislikes': dislikes, 'description': description}
+                 'dislikes': dislikes, 'description': description, 'url': url}
 
         # Create flag variables for quality finding
         max_quality = False
@@ -119,11 +130,30 @@ for index, url in enumerate(url_list):
         print()
         print()
 
+        # Reset error_num
+        error_num = 0
+
     except:
         print('Could not scrape: ' + url)
+        if error_num < error_limit:
+            print('Error ' + str(error_num) + ' in a row. After ' + str(error_limit) +
+                  ' errors in a row, the script will stop.')
+            error_num = error_num + 1
+            error_url_list.append(url)
+        else:
+            print('Error limit reached. This is most likely due to a limit of the YouTube Data API Quota.')
+            print('Once the quota is is restored, rerun the program on the "Unable_to_scrape_list.csv"')
+            error_url_list = error_url_list + list(url_list[index:])
+            break
 
 # Convert stats_dict_list to dataframe
 stats_df = pd.DataFrame(stats_dict_list)
 
 # Write stats to a csv
-stats_df.to_csv('stats.csv')
+stats_df.to_csv('stats.csv', index=False)
+
+# Create Unable_to_scrape_list DF
+unable_to_scrape = data[data[url_column_name].isin(error_url_list)]
+
+# Write Unable_to_scrape_list to a csv
+unable_to_scrape.to_csv('Unable_to_scrape_list.csv', index=False)
