@@ -62,6 +62,9 @@ for index, url in enumerate(url_list):
         dislikes = video.dislikes
         description = video.description
 
+        # Clean title of non-allowed characters
+        title = re.sub('[^\w\-_\. ]', '_', title)
+
         # Create dict of stats
         stats = dict()
         stats = {'title': title, 'views': views, 'author': author, 'length': length, 'likes': likes,
@@ -99,9 +102,6 @@ for index, url in enumerate(url_list):
                 break
 
         print(title + ": " + str(video_out))
-
-        # Clean title of non-allowed characters
-        title = re.sub('[^\w\-_\. ]', '_', title)
 
         # Make title
         extension = '.webm'
