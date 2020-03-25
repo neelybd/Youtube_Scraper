@@ -5,7 +5,19 @@ import os
 import youtube_dl
 import pandas as pd
 import re
+import shutil
+import ffmpeg
 
+print("Program: BN_Youtube_Scraper")
+print("Release: 0.0.8")
+print("Date: 2020-03-24")
+print("Author: Brian Neely")
+print()
+print()
+print("This program reads a csv file of youtube url's and downloads them.")
+print("Add ffmpeg.exe or install ffmpeg through command line before using this script/")
+print()
+print()
 
 # Select CSV to open
 file_in = select_file_in()
@@ -48,6 +60,12 @@ if y_n_question("Use best quality (y/n): "):
 else:
     # Ask for best quality to be used
     video_quality_selection = dict_selection(quality_dict, "Select the maximum video quality to download", "")
+
+# Ask for sound
+if y_n_question("Include sound (This increasing processing time) (y/n): "):
+    sound_selection = True
+else:
+    sound_selection = False
 
 # Could not scrape limit
 error_limit = 10
@@ -115,11 +133,63 @@ for index, url in enumerate(url_list):
         print(title + ": " + str(video_out))
 
         # Make title
-        extension = '.webm'
+        extension = '.' + video_out.extension
         full_title = title + " - " + quality_for_title + extension
 
-        # Download the video
-        video_out.download(os.path.join(outpt_fldr, full_title))
+        # If sound, Download best audio and combine with video
+        if sound_selection:
+            # Get best audio
+            sound = video.getbestaudio()
+
+            # Make temp folder
+            temp_fldr = "temp"
+            if os.path.exists(temp_fldr):
+                print("Deleting old temp folder...")
+                shutil.rmtree(temp_fldr)
+                print("Old temp folder deleted!")
+                print()
+            time.sleep(2)
+            print("Creating temporary folder...")
+            os.mkdir(temp_fldr)
+
+            # Temp File Locations
+            video_path = os.path.join(temp_fldr, title + "video." + video_out.extension)
+            audio_path = os.path.join(temp_fldr, title + "sound." + sound.extension)
+
+            # Download audio and video into temp folder
+            video_out.download(video_path)
+            sound.download(audio_path)
+
+            # Output Location
+            output_path = os.path.join(outpt_fldr, full_title)
+
+            # If file already present delete append a number at the end
+            if os.path.exists(output_path):
+                file_index = 1
+                while os.path.exists(os.path.splitext(output_path)[0] + " - " + str(file_index) +
+                                     os.path.splitext(output_path)[1]):
+                    file_index = file_index + 1
+
+                output_path = os.path.splitext(output_path)[0] + " - " + str(file_index) + \
+                              os.path.splitext(output_path)[1]
+
+            # Combine audio and video together
+            input_video = ffmpeg.input(video_path)
+            input_audio = ffmpeg.input(audio_path)
+            try:
+                ffmpeg.output(input_video, input_audio, output_path, vcodec='copy').run()
+            except FileNotFoundError:
+                print("Could not open ffmpeg. Please ffmpeg in the root directory and try again, run [brew install ffmpeg].")
+
+            # Delete temp folder
+            if os.path.exists(temp_fldr):
+                try:
+                    shutil.rmtree(temp_fldr)
+                except:
+                    print("Temporary folder could not be deleted.")
+        else:
+            # Download the video
+            video_out.download(os.path.join(outpt_fldr, full_title))
 
         # Append stats to dict list
         stats_dict_list.append(stats)
@@ -138,6 +208,7 @@ for index, url in enumerate(url_list):
         if error_num < error_limit:
             print('Error ' + str(error_num) + ' in a row. After ' + str(error_limit) +
                   ' errors in a row, the script will stop.')
+            print()
             error_num = error_num + 1
             error_url_list.append(url)
         else:
