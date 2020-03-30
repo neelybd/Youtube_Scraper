@@ -9,8 +9,8 @@ import shutil
 import ffmpeg
 
 print("Program: BN_Youtube_Scraper")
-print("Release: 0.0.8")
-print("Date: 2020-03-24")
+print("Release: 0.0.9")
+print("Date: 2020-03-30")
 print("Author: Brian Neely")
 print()
 print()
@@ -173,10 +173,10 @@ for index, url in enumerate(url_list):
                 output_path = os.path.splitext(output_path)[0] + " - " + str(file_index) + \
                               os.path.splitext(output_path)[1]
 
-            # Combine audio and video together
-            input_video = ffmpeg.input(video_path)
-            input_audio = ffmpeg.input(audio_path)
             try:
+                # Combine audio and video together
+                input_video = ffmpeg.input(video_path)
+                input_audio = ffmpeg.input(audio_path)
                 ffmpeg.output(input_video, input_audio, output_path, vcodec='copy').run()
             except FileNotFoundError:
                 print("Could not open ffmpeg. Please ffmpeg in the root directory and try again, run [brew install ffmpeg].")
@@ -202,6 +202,9 @@ for index, url in enumerate(url_list):
 
         # Reset error_num
         error_num = 0
+
+        # Sleep 10 seconds to help limit HTTP Error 429
+        time.sleep(10)
 
     except:
         print('Could not scrape: ' + url)
